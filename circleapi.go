@@ -13,15 +13,28 @@ import (
 // until it succeeds or fails. It waits until this is the only job left running
 // then declares the workflow finished and records success or failure same as
 // the `handleBuild` function
-func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int) error {
+func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, debugMode string) error {
 	workflowID, _ := os.LookupEnv("CIRCLE_WORKFLOW_ID")
 	thisJobName, _ := os.LookupEnv("CIRCLE_JOB")
+
+	if debugMode != "" {
+		fmt.Printf("using workflow %s\n", workflowID)
+		fmt.Printf("using thisjob %s\n", thisJobName)
+		fmt.Printf("using traceid %s\n", traceID)
+	}
 
 	// TODO decide whether we can exist without token set. it's not required for
 	// public repos; it is for private repos.
 	token, _ := os.LookupEnv("BUILDEVENT_CIRCLE_API_TOKEN")
 	client := &circleci.Client{
 		Token: token,
+	}
+
+	if debugMode != "" {
+		fmt.Printf("using workflow %s\n", workflowID)
+		fmt.Printf("using thisjob %s\n", thisJobName)
+		fmt.Printf("using traceid %s\n", traceID)
+		fmt.Printf("using token %s\n", token)
 	}
 
 	wfJobs, err := getJobs(client, workflowID)

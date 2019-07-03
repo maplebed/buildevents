@@ -271,6 +271,8 @@ func usage() {
 }
 
 func main() {
+	debugMode, _ := os.LookupEnv("BUILDEVENT_DEBUG")
+
 	apikey, _ := os.LookupEnv("BUILDEVENT_APIKEY")
 	dataset, _ := os.LookupEnv("BUILDEVENT_DATASET")
 	apihost, _ := os.LookupEnv("BUILDEVENT_APIHOST")
@@ -308,7 +310,7 @@ func main() {
 	}
 
 	// respond to ./buildevents --version
-	if strings.TrimSpace(os.Args[1]) == "--version" {
+	if len(os.Args) > 1 && strings.TrimSpace(os.Args[1]) == "--version" {
 		fmt.Println(Version)
 		os.Exit(0)
 	}
@@ -359,7 +361,7 @@ func main() {
 		handleStep()
 	} else if spanType == "watch" {
 		if ciProvider == "CircleCI" {
-			err = pollCircleAPI(traceID, teamName, apihost, dataset, timeoutMin)
+			err = pollCircleAPI(traceID, teamName, apihost, dataset, timeoutMin, debugMode)
 		} else {
 			err = fmt.Errorf("watch command only valid on CircleCI")
 		}

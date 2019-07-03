@@ -73,9 +73,17 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 				return
 			}
 
+			// calculate how long this build has been going on
+			var runTime time.Duration
+			if wf.StoppedAt.IsZero() {
+				runTime = time.Since(wf.CreatedAt)
+			} else {
+				runTime = wf.StoppedAt.Sub(wf.CreatedAt)
+			}
+
 			fmt.Printf("workflow running from %s to %s, running for %d seconds, status %s\n",
 				wf.CreatedAt.Format(time.Kitchen), wf.StoppedAt.Format(time.Kitchen),
-				wf.StoppedAt.Sub(wf.CreatedAt)/time.Second, wf.Status)
+				runTime/time.Second, wf.Status)
 
 			fmt.Printf("%s:   polling for finished jobs: ", t.Format(time.StampMilli))
 			wfJobs, err = getJobs(client, workflowID)
@@ -148,6 +156,7 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 	case <-time.After(timeoutDur):
 		// uh oh we timed out
 		// TODO add reason = timeout or something.
+		fmt.Printf("Watch command timed out after %d seconds. Bailing out.\n", timeoutDur/time.Second)
 		failed = true
 	}
 

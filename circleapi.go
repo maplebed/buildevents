@@ -9,6 +9,11 @@ import (
 	circleci "github.com/jszwedko/go-circleci"
 )
 
+// numChecks is the number of times to verify that we're finished before
+// declaring success in case we enter a transient state with blocked jobs that
+// really will start soon.
+const numChecks = 3
+
 // pollCircleAPI will continue to poll the Circle API for this workflow's status
 // until it succeeds or fails. It waits until this is the only job left running
 // then declares the workflow finished and records success or failure same as
@@ -57,6 +62,7 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 	done := make(chan struct{})
 	tic := time.NewTicker(5 * time.Second)
 	var failed bool
+	checksLeft := numChecks
 	go func() {
 		defer func() { done <- struct{}{} }()
 		for t := range tic.C {
@@ -116,9 +122,15 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 			fmt.Printf("%s\n", strings.Join(short, ","))
 
 			if numFinished == numJobs {
+				if checksLeft <= 0 {
+					fmt.Printf("all found jobs are in the finished state. We're done!\n")
+					return
+				}
 				// if all jobs in the run have gotten to one of our finished states, then
 				// the whole workflow is finished
-				fmt.Println("all found jobs are in the finished state. Are we done?")
+				fmt.Printf("all found jobs are in the finished state. Are we done? Checking %d more times.\n", checksLeft)
+				checksLeft--
+				continue
 			}
 			if wf.Status == "running" || wf.Status == "failing" {
 				// we're still going

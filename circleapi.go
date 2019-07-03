@@ -26,7 +26,7 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 	// TODO decide whether we can exist without token set. it's not required for
 	// public repos; it is for private repos.
 	token, found := os.LookupEnv("BUILDEVENT_CIRCLE_API_TOKEN")
-	fmt.Printf("token lookup: %s and %s\n", token, found)
+	fmt.Printf("token lookup: %s and %b\n", token, found)
 	if token == "" {
 		return fmt.Errorf("circle token required to poll the API")
 	}

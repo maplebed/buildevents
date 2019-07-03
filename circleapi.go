@@ -26,6 +26,9 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 	// TODO decide whether we can exist without token set. it's not required for
 	// public repos; it is for private repos.
 	token, _ := os.LookupEnv("BUILDEVENT_CIRCLE_API_TOKEN")
+	if token == "" {
+		return fmt.Errorf("circle token required to poll the API")
+	}
 	client := &circleci.Client{
 		Token: token,
 	}
@@ -56,7 +59,16 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 	go func() {
 		defer func() { done <- struct{}{} }()
 		for t := range tic.C {
-			fmt.Println("polling for finished jobs: ", t.Format(time.StampMilli))
+			fmt.Printf("%s: polling workflow status: ", t.Format(time.StampMilli))
+			wf, err := client.GetWorkflowV2(workflowID)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("workflow started at %s, running for %d seconds, status %s",
+				wf.CreatedAt, time.Since(wf.CreatedAt) / time.Second), wf.Status)
+
+
+			fmt.Printf("%s polling for finished jobs: ", t.Format(time.StampMilli))
 			wfJobs, err = getJobs(client, workflowID)
 			if err != nil {
 				return

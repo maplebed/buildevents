@@ -25,7 +25,8 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 
 	// TODO decide whether we can exist without token set. it's not required for
 	// public repos; it is for private repos.
-	token, _ := os.LookupEnv("BUILDEVENT_CIRCLE_API_TOKEN")
+	token, found := os.LookupEnv("BUILDEVENT_CIRCLE_API_TOKEN")
+	fmt.Printf("token lookup: %s and %s\n", token, found)
 	if token == "" {
 		return fmt.Errorf("circle token required to poll the API")
 	}
@@ -65,10 +66,12 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 				fmt.Printf("caught error %s", err.Error())
 				return
 			}
-			fmt.Printf("workflow started at %s, running for %d seconds, status %s",
-				wf.CreatedAt, time.Since(wf.CreatedAt)/time.Second, wf.Status)
 
-			fmt.Printf("%s polling for finished jobs: ", t.Format(time.StampMilli))
+			fmt.Printf("workflow running from %s to %s, running for %d seconds, status %s\n",
+				wf.CreatedAt.Format(time.Kitchen), wf.StoppedAt.Format(time.Kitchen),
+				wf.StoppedAt.Sub(wf.CreatedAt)/time.Second, wf.Status)
+
+			fmt.Printf("%s:   polling for finished jobs: ", t.Format(time.StampMilli))
 			wfJobs, err = getJobs(client, workflowID)
 			if err != nil {
 				return
@@ -115,8 +118,14 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 			if numFinished == numJobs {
 				// if all jobs in the run have gotten to one of our finished states, then
 				// the whole workflow is finished
-				return
+				fmt.Println("all found jobs are in the finished state. Are we done?")
 			}
+			if wf.Status == "running" || wf.Status == "failing" {
+				// we're still going
+				continue
+			}
+			// we've entered a halting state. finish.
+			return
 		}
 	}()
 

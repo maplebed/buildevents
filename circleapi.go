@@ -62,11 +62,11 @@ func pollCircleAPI(traceID, teamName, apiHost, dataset string, timeoutMin int, d
 			fmt.Printf("%s: polling workflow status: ", t.Format(time.StampMilli))
 			wf, err := client.GetWorkflowV2(workflowID)
 			if err != nil {
-				return err
+				fmt.Printf("caught error %s", err.Error())
+				return
 			}
 			fmt.Printf("workflow started at %s, running for %d seconds, status %s",
-				wf.CreatedAt, time.Since(wf.CreatedAt) / time.Second), wf.Status)
-
+				wf.CreatedAt, time.Since(wf.CreatedAt)/time.Second, wf.Status)
 
 			fmt.Printf("%s polling for finished jobs: ", t.Format(time.StampMilli))
 			wfJobs, err = getJobs(client, workflowID)
